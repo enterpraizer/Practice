@@ -87,7 +87,9 @@ python3 benchmark.py
   - truck: 28%
 ```
 
-Результат с рамками: [`results/input.jpg`](results/input.jpg)
+Результат с рамками:
+
+![Результат детекции: автомобили и грузовики, обведённые рамками](results/input.jpg)
 
 ### Скорость (YOLOv11n, CPU Raspberry Pi 5)
 
