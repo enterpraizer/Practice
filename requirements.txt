@@ -1,0 +1,15 @@
+# Зависимости проекта (Raspberry Pi 5, CPU, aarch64).
+# Протестировано: Python 3.13, Raspberry Pi OS (64-bit).
+#
+# PyTorch ставится в CPU-версии (+cpu) из официального CPU-репозитория.
+# На Raspberry Pi это обязательно: иначе pip тянет огромные CUDA-пакеты NVIDIA,
+# которые на плате бесполезны.
+#
+# Установка:
+#   pip install -r requirements.txt
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.12.0+cpu
+torchvision==0.27.0+cpu
+ultralytics==8.4.63
