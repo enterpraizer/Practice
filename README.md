@@ -27,7 +27,8 @@
 ├── README.md            — описание проекта (этот файл)
 ├── detect.py            — детекция на картинке (CPU)
 ├── benchmark.py         — замер скорости (CPU)
-├── detect_hailo.py      — детекция на картинке (ускоритель Hailo)
+├── detect_hailo.py      — детекция на картинке (Hailo, 320×320)
+├── detect_hailo_640.py  — детекция на картинке (Hailo, 640×640)
 ├── benchmark_hailo.py   — замер скорости (Hailo, 320×320)
 ├── benchmark_hailo_640.py — замер скорости (Hailo, 640×640)
 ├── video_hailo.py       — детекция на видео (Hailo) + FPS
@@ -37,7 +38,8 @@
 └── results/
     ├── input.jpg          — картинка с рамками (CPU)
     ├── benchmark.txt      — отчёт о замере (CPU)
-    ├── hailo.jpg          — картинка с рамками (Hailo)
+    ├── hailo.jpg          — картинка с рамками (Hailo 320)
+    ├── hailo_640.jpg      — картинка с рамками (Hailo 640)
     ├── benchmark_hailo.txt — отчёт о замере (Hailo 320)
     └── benchmark_hailo_640.txt — отчёт о замере (Hailo 640)
 ```
@@ -92,13 +94,13 @@ python3 video_hailo.py     # детекция на видео
 
 ### Детекция (одно и то же фото — уличная пробка)
 
-| | CPU (YOLOv11n) | Hailo (YOLOv8s) |
-|---|---|---|
-| Найдено объектов | 21 | 16 |
-| Результат | ![CPU](results/input.jpg) | ![Hailo](results/hailo.jpg) |
+| | CPU — YOLOv11n 640 | Hailo — YOLOv8s 320 | Hailo — DAMO-YOLO 640 |
+|---|---|---|---|
+| Найдено объектов | 21 | 16 | 35 |
+| Результат | ![CPU](results/input.jpg) | ![Hailo 320](results/hailo.jpg) | ![Hailo 640](results/hailo_640.jpg) |
 
-> Hailo нашёл меньше объектов, т.к. модель меньше и вход 320×320 против 640×640 на CPU —
-> это компромисс ради скорости.
+> Число найденных объектов зависит в первую очередь от **разрешения входа**:
+> на 320×320 модель видит меньше далёких машин (16), а на 640×640 — заметно больше (35).
 
 ### Скорость — главное сравнение
 
