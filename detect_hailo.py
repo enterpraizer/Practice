@@ -23,10 +23,10 @@ result = model(INPUT)
 
 overlay = result.image_overlay
 try:
-    overlay.save(OUTPUT)            # PIL-изображение
+    overlay.save(OUTPUT)
 except AttributeError:
     import cv2
-    cv2.imwrite(OUTPUT, overlay)   # numpy-массив
+    cv2.imwrite(OUTPUT, overlay)
 
 print(f"Обработано:  {INPUT}")
 print(f"Результат:   {OUTPUT}")

@@ -15,7 +15,7 @@ model = YOLO(MODEL)
 results = model.predict(source=INPUT, verbose=False)
 r = results[0]
 
-cv2.imwrite(OUTPUT, r.plot())  # сохранить картинку с рамками
+cv2.imwrite(OUTPUT, r.plot())
 
 print(f"Обработано:  {INPUT}")
 print(f"Результат:   {OUTPUT}")

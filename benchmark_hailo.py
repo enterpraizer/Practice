@@ -9,7 +9,7 @@ import degirum as dg
 INPUT = "images/input.jpg"
 MODEL = "damoyolo_tinynasL35_M--640x640_quant_hailort_hailo8l_1"
 RUNS = 20
-WARMUP = 3  # прогоны на разогрев, в статистику не идут
+WARMUP = 3
 
 Path("results").mkdir(exist_ok=True)
 token = Path("degirum_token.txt").read_text().strip()

@@ -9,7 +9,7 @@ from ultralytics import YOLO
 INPUT = "images/input.jpg"
 MODEL = "yolo11n.pt"
 RUNS = 30
-WARMUP = 3  # прогоны на разогрев, в статистику не идут
+WARMUP = 3
 
 Path("results").mkdir(exist_ok=True)
 model = YOLO(MODEL)
