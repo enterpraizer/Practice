@@ -14,5 +14,8 @@ yolo/
 # Стандартная папка вывода ultralytics (используем свою — results/)
 runs/
 
+# Секреты — токен DeGirum (НЕ должен попасть в публичный репозиторий)
+degirum_token.txt
+
 # Системное
 .DS_Store
