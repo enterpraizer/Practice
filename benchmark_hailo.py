@@ -1,4 +1,4 @@
-"""Замер скорости инференса YOLO на ускорителе Hailo-8L (DeGirum): среднее время и FPS."""
+"""Замер скорости детекции на Hailo-8L при входе 640x640 (DeGirum) — для сравнения с CPU 640."""
 
 import platform
 import time
@@ -7,9 +7,9 @@ from pathlib import Path
 import degirum as dg
 
 INPUT = "images/input.jpg"
-MODEL = "yolov8s_coco--320x320_quant_hailort_hailo8l_1"
-RUNS = 50
-WARMUP = 5  # прогоны на разогрев, в статистику не идут
+MODEL = "damoyolo_tinynasL35_M--640x640_quant_hailort_hailo8l_1"
+RUNS = 20
+WARMUP = 3  # прогоны на разогрев, в статистику не идут
 
 Path("results").mkdir(exist_ok=True)
 token = Path("degirum_token.txt").read_text().strip()
@@ -33,10 +33,10 @@ for _ in range(RUNS):
 
 avg_s = sum(times) / len(times)
 
-report = f"""Замер скорости YOLOv8s на Hailo-8L (ускоритель)
+report = f"""Замер скорости DAMO-YOLO 640x640 на Hailo-8L (ускоритель)
 =================================================
 Машина:        {platform.node()} ({platform.machine()})
-Модель:        YOLOv8s COCO 320x320 (Hailo-8L)
+Модель:        DAMO-YOLO M, 640x640 (Hailo-8L)
 Картинка:      {INPUT}
 Прогонов:      {RUNS} (+{WARMUP} на разогрев)
 

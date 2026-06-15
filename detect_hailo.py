@@ -1,4 +1,4 @@
-"""Распознавание объектов на картинке с помощью YOLO на ускорителе Hailo-8L (DeGirum)."""
+"""Детекция на картинке через DAMO-YOLO 640x640 на ускорителе Hailo-8L (DeGirum)."""
 
 from pathlib import Path
 
@@ -6,7 +6,7 @@ import degirum as dg
 
 INPUT = "images/input.jpg"
 OUTPUT = "results/hailo.jpg"
-MODEL = "yolov8s_coco--320x320_quant_hailort_hailo8l_1"
+MODEL = "damoyolo_tinynasL35_M--640x640_quant_hailort_hailo8l_1"
 
 Path("results").mkdir(exist_ok=True)
 token = Path("degirum_token.txt").read_text().strip()
