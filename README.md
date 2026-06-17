@@ -1,9 +1,10 @@
 # YOLO на Raspberry Pi 5: CPU vs Hailo
 
-Запустил детекцию объектов YOLO на Raspberry Pi 5 двумя способами — на **CPU** и на
-AI-ускорителе **Hailo-8L** — и сравнил скорость при одинаковом разрешении 640×640.
+Запустил **YOLOv11n** на Raspberry Pi 5 двумя способами — на **CPU** и на AI-ускорителе
+**Hailo-8L** — и сравнил скорость на **одной и той же модели** (640×640).
+Модель для ускорителя скомпилировал сам из `yolo11n.pt` (квантизация в int8 на картинках COCO).
 
-**Итог: на ускорителе ~3.7× быстрее, и объектов находит больше.**
+**Итог: на ускорителе ~12× быстрее (2.7 → 33.5 FPS).**
 
 ## Железо
 
@@ -13,19 +14,31 @@ AI-ускорителе **Hailo-8L** — и сравнил скорость пр
 
 ## Результат
 
-Одно фото (зимняя пробка), вход 640×640:
+Одно фото (зимняя пробка), **YOLOv11n, 640×640**:
 
-| | CPU — YOLOv11n | Hailo — DAMO-YOLO |
+| | CPU | Hailo-8L |
 |---|---|---|
-| Скорость | 2.7 FPS (371 мс) | **10 FPS (100 мс)** |
-| Найдено объектов | 21 | **35** |
+| Скорость | 2.7 FPS (371 мс) | **33.5 FPS (30 мс)** |
+| Найдено объектов | 21 | 19 |
+| Ускорение | 1× | **≈ 12×** |
 
 | CPU | Hailo |
 |---|---|
 | ![CPU](results/input.jpg) | ![Hailo](results/hailo.jpg) |
 
+Небольшая разница в числе объектов (21 vs 19) — из-за квантизации модели в int8.
+
 Замеры: [results/benchmark.txt](results/benchmark.txt) (CPU),
 [results/benchmark_hailo.txt](results/benchmark_hailo.txt) (Hailo).
+
+## Как модель попала на ускоритель
+
+Hailo понимает только формат `.hef`, поэтому ту же `yolo11n.pt` пришлось скомпилировать
+(на x86-Linux через Hailo Dataflow Compiler + Model Zoo):
+
+```
+yolo11n.pt  →  ONNX  →  квантизация в int8 (калибровка на COCO)  →  yolov11n.hef (hailo8l)
+```
 
 ## Установка
 
@@ -47,14 +60,13 @@ degirum token install --token <ВАШ_ТОКЕН_DEGIRUM>
 ## Запуск
 
 ```bash
-python3 detect.py          # детекция на CPU
-python3 benchmark.py       # замер скорости (CPU)
-python3 detect_hailo.py    # детекция на Hailo
-python3 benchmark_hailo.py # замер скорости (Hailo)
-python3 video_hailo.py     # детекция на видео (Hailo)
+python3 detect.py            # детекция на CPU (YOLOv11n)
+python3 benchmark.py         # замер скорости (CPU)
+python3 detect_hailo.py      # YOLOv11n на Hailo: рамки + замер FPS
 ```
 
 ## Файлы
 
-`detect*.py` — детекция на картинке, `benchmark*.py` — замер FPS
-(`*_hailo` — версии под ускоритель). Исходники в `images/`, результаты в `results/`.
+`detect*.py` — детекция на картинке, `benchmark*.py` — замер FPS, `*_hailo*` — версии
+под ускоритель, `yolov11n.hef` — наша модель, скомпилированная под Hailo.
+Исходники в `images/`, результаты в `results/`.
