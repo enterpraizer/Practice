@@ -31,14 +31,38 @@
 Замеры: [results/benchmark.txt](results/benchmark.txt) (CPU),
 [results/benchmark_hailo.txt](results/benchmark_hailo.txt) (Hailo).
 
-## Как модель попала на ускоритель
+## Компиляция модели под Hailo (квантизация)
 
-Hailo понимает только формат `.hef`, поэтому ту же `yolo11n.pt` пришлось скомпилировать
-(на x86-Linux через Hailo Dataflow Compiler + Model Zoo):
+Hailo выполняет модели только в формате `.hef` и считает в **int8**, поэтому `yolo11n.pt`
+скомпилировал сам. Компиляция идёт на **x86-Linux** (использовал Google Colab — Pi и Mac не
+подходят, нужен x86).
 
+Пайплайн:
 ```
-yolo11n.pt  →  ONNX  →  квантизация в int8 (калибровка на COCO)  →  yolov11n.hef (hailo8l)
+yolo11n.pt → ONNX → квантизация в int8 (калибровка на COCO128) → yolov11n.hef (hailo8l)
 ```
+
+Окружение (под HailoRT 4.23, что стоит на плате):
+- Python 3.10, Hailo Dataflow Compiler 3.33.1, Hailo Model Zoo 2.17
+
+Шаги:
+```bash
+# 1. калибровочные картинки (нужны для квантизации)
+wget https://github.com/ultralytics/yolov5/releases/download/v1.0/coco128.zip
+unzip coco128.zip
+
+# 2. parse → квантизация в int8 на COCO → compile  (одной командой)
+hailomz compile yolov11n --hw-arch hailo8l --calib-path coco128/images/train2017
+# результат: yolov11n.hef
+```
+
+**Что значит квантизация:** числа модели переводятся из float32 в int8 (256 уровней). Чтобы
+подобрать масштаб без потери точности, через модель прогоняют картинки COCO и замеряют
+реальные диапазоны значений в каждом слое. Отсюда небольшая разница в детекциях (19 vs 21) —
+плата за скорость.
+
+Запуск `.hef` из Python — через DeGirum (локальная модель: `.hef` + JSON-конфиг с
+`OutputPostprocessType: DetectionYoloHailo`), см. `detect_hailo.py`.
 
 ## Установка
 
