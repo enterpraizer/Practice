@@ -64,31 +64,6 @@ hailomz compile yolov11n --hw-arch hailo8l --calib-path coco128/images/train2017
 Запуск `.hef` из Python — через DeGirum (локальная модель: `.hef` + JSON-конфиг с
 `OutputPostprocessType: DetectionYoloHailo`), см. `detect_hailo.py`.
 
-## Установка
-
-```bash
-# Система + окружение
-sudo apt install -y python3-pip python3-venv libgl1
-python3 -m venv yolo && source yolo/bin/activate
-
-# CPU: PyTorch обязательно из CPU-репозитория (иначе тянет ненужные CUDA-пакеты)
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-pip install ultralytics
-
-# Hailo: драйвер + рантайм, затем библиотека для запуска из Python
-sudo apt install -y hailo-all && sudo reboot
-pip install degirum degirum_tools
-degirum token install --token <ВАШ_ТОКЕН_DEGIRUM>
-```
-
-## Запуск
-
-```bash
-python3 detect.py            # детекция на CPU (YOLOv11n)
-python3 benchmark.py         # замер скорости (CPU)
-python3 detect_hailo.py      # YOLOv11n на Hailo: рамки + замер FPS
-```
-
 ## Файлы
 
 `detect*.py` — детекция на картинке, `benchmark*.py` — замер FPS, `*_hailo*` — версии
