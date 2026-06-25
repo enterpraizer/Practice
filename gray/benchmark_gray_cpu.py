@@ -1,79 +1,53 @@
-"""Сравнение скорости YOLOv11n на CPU полным конвейером (как старый цветной замер):
-1 канал (серый, сейчас) vs 3 канала (цвет).
+"""1 канал (серый) vs 3 канала (цвет) — через model.predict (тот же метод, что прошлый замер 2.7)."""
 
-Меряем загрузка + предобработка + инференс + NMS — тот же объём, что у model.predict,
-чтобы число серого было сравнимо со старым цветным результатом (2.7 FPS).
-1-канальная модель — настоящая (веса первого слоя просуммированы по каналам).
-"""
-
-import copy
-import platform
 import time
 from pathlib import Path
 
 import cv2
 import torch
+import torch.nn as nn
 from ultralytics import YOLO
-
-try:
-    from ultralytics.utils.nms import non_max_suppression
-except (ImportError, AttributeError):
-    from ultralytics.utils.ops import non_max_suppression
 
 torch.set_num_threads(4)
 
-IMG = "images/input.jpg"
+COLOR = "images/input.jpg"
+GRAY = "images/input_gray.jpg"
 RUNS = 30
 WARMUP = 5
 
 Path("results").mkdir(exist_ok=True)
+cv2.imwrite(GRAY, cv2.cvtColor(cv2.imread(COLOR), cv2.COLOR_BGR2GRAY))
 
-model3 = YOLO("yolo11n.pt").model.eval()
+m3 = YOLO("yolo11n.pt")
 
-model1 = copy.deepcopy(model3)
-first = model1.model[0].conv
-first.weight = torch.nn.Parameter(first.weight.data.sum(dim=1, keepdim=True))
-first.in_channels = 1
-
-
-def prep(channels):
-    img = cv2.imread(IMG, cv2.IMREAD_GRAYSCALE)
-    img = cv2.resize(img, (640, 640))
-    if channels == 3:
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        t = torch.from_numpy(img).permute(2, 0, 1)
-    else:
-        t = torch.from_numpy(img).unsqueeze(0)
-    return t.unsqueeze(0).float() / 255.0
+m1 = YOLO("yolo11n.pt")
+old = m1.model.model[0].conv
+new = nn.Conv2d(1, old.out_channels, old.kernel_size, old.stride, old.padding, bias=old.bias is not None)
+new.weight.data = old.weight.data.sum(dim=1, keepdim=True)
+if old.bias is not None:
+    new.bias.data = old.bias.data
+m1.model.model[0].conv = new
+m1.model.yaml["ch"] = 1
 
 
-def bench(channels, model):
-    with torch.no_grad():
-        for _ in range(WARMUP):
-            non_max_suppression(model(prep(channels)))
-        times = []
-        for _ in range(RUNS):
-            start = time.perf_counter()
-            x = prep(channels)
-            preds = model(x)
-            non_max_suppression(preds)
-            times.append(time.perf_counter() - start)
+def bench(model, src):
+    for _ in range(WARMUP):
+        model.predict(src, verbose=False)
+    times = []
+    for _ in range(RUNS):
+        start = time.perf_counter()
+        model.predict(src, verbose=False)
+        times.append(time.perf_counter() - start)
     return sum(times) / len(times)
 
 
-a3 = bench(3, model3)
-a1 = bench(1, model1)
+a3 = bench(m3, COLOR)
+a1 = bench(m1, GRAY)
 
-report = f"""Скорость YOLOv11n на CPU (полный конвейер: загрузка+препроцесс+инференс+NMS)
+report = f"""Скорость YOLOv11n на CPU (model.predict): 1 канал vs 3 канала
 =================================================
-Машина:   {platform.node()} ({platform.machine()}), {torch.get_num_threads()} ядра
-Прогонов: {RUNS} (+{WARMUP} разогрев)
-
 3 канала (цвет):  {a3 * 1000:6.1f} мс | {1 / a3:5.2f} FPS
 1 канал  (серый): {a1 * 1000:6.1f} мс | {1 / a1:5.2f} FPS
-
-(старый цветной замер тем же методом был ~2.7 FPS — для сверки)
 """
-
 print(report)
 Path("results/benchmark_gray_cpu.txt").write_text(report, encoding="utf-8")
