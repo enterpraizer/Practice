@@ -1,7 +1,9 @@
-"""Сравнение скорости инференса YOLOv11n на CPU: 1 канал (gray) vs 3 канала (RGB).
+"""Сравнение скорости YOLOv11n на CPU полным конвейером (как старый цветной замер):
+1 канал (серый, сейчас) vs 3 канала (цвет).
 
-1-канальная модель — настоящая: веса первого слоя суммируются по входным каналам
-(для серого изображения это даёт тот же результат, но честно с 1 каналом на входе).
+Меряем загрузка + предобработка + инференс + NMS — тот же объём, что у model.predict,
+чтобы число серого было сравнимо со старым цветным результатом (2.7 FPS).
+1-канальная модель — настоящая (веса первого слоя просуммированы по каналам).
 """
 
 import copy
@@ -13,9 +15,14 @@ import cv2
 import torch
 from ultralytics import YOLO
 
+try:
+    from ultralytics.utils.nms import non_max_suppression
+except (ImportError, AttributeError):
+    from ultralytics.utils.ops import non_max_suppression
+
 torch.set_num_threads(4)
 
-IMG = "images/input.jpg"  # читаем как ч/б (IMREAD_GRAYSCALE)
+IMG = "images/input.jpg"
 RUNS = 30
 WARMUP = 5
 
@@ -29,7 +36,7 @@ first.weight = torch.nn.Parameter(first.weight.data.sum(dim=1, keepdim=True))
 first.in_channels = 1
 
 
-def tensor(channels):
+def prep(channels):
     img = cv2.imread(IMG, cv2.IMREAD_GRAYSCALE)
     img = cv2.resize(img, (640, 640))
     if channels == 3:
@@ -41,14 +48,15 @@ def tensor(channels):
 
 
 def bench(channels, model):
-    x = tensor(channels)
     with torch.no_grad():
         for _ in range(WARMUP):
-            model(x)
+            non_max_suppression(model(prep(channels)))
         times = []
         for _ in range(RUNS):
             start = time.perf_counter()
-            model(x)
+            x = prep(channels)
+            preds = model(x)
+            non_max_suppression(preds)
             times.append(time.perf_counter() - start)
     return sum(times) / len(times)
 
@@ -56,17 +64,15 @@ def bench(channels, model):
 a3 = bench(3, model3)
 a1 = bench(1, model1)
 
-report = f"""Скорость инференса YOLOv11n на CPU: 1 канал (gray) vs 3 канала (RGB)
+report = f"""Скорость YOLOv11n на CPU (полный конвейер: загрузка+препроцесс+инференс+NMS)
 =================================================
-Машина:     {platform.node()} ({platform.machine()})
-Ядер CPU:   {torch.get_num_threads()}
-Картинка:   {IMG} (читается как ч/б)
-Прогонов:   {RUNS} (+{WARMUP} на разогрев)
+Машина:   {platform.node()} ({platform.machine()}), {torch.get_num_threads()} ядра
+Прогонов: {RUNS} (+{WARMUP} разогрев)
 
-3 канала:  {a3 * 1000:6.1f} мс | {1 / a3:5.2f} FPS
-1 канал:   {a1 * 1000:6.1f} мс | {1 / a1:5.2f} FPS
+3 канала (цвет):  {a3 * 1000:6.1f} мс | {1 / a3:5.2f} FPS
+1 канал  (серый): {a1 * 1000:6.1f} мс | {1 / a1:5.2f} FPS
 
-1 канал быстрее в {a3 / a1:.3f}x ({(1 - a1 / a3) * 100:.1f}%)
+(старый цветной замер тем же методом был ~2.7 FPS — для сверки)
 """
 
 print(report)
