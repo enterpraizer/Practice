@@ -31,6 +31,23 @@
 Замеры: [rgb/results/benchmark.txt](rgb/results/benchmark.txt) (CPU),
 [rgb/results/benchmark_hailo.txt](rgb/results/benchmark_hailo.txt) (Hailo).
 
+## Серый (1 канал) vs цвет (3 канала)
+
+Проверка: даёт ли перевод модели в grayscale (1 канал вместо 3) прирост скорости.
+Обе модели замерены **одним методом** (чистый инференс на CPU, 4 ядра, 30 прогонов):
+
+| | Цвет (3 канала) | Серый (1 канал) |
+|---|---|---|
+| FPS | 3.76 | 3.66 |
+| Время на картинку | 266 мс | 273 мс |
+
+**Вывод: нет.** 1-канальная модель не быстрее (даже на ~2.5% медленнее — в пределах
+погрешности): у неё отличается только первый свёрточный слой. Grayscale экономит данные
+(в 3 раза меньше вход), но скорость инференса не меняет.
+
+Замер: [gray/results/benchmark_gray_cpu.txt](gray/results/benchmark_gray_cpu.txt),
+картинка с рамками: [gray/results/gray.jpg](gray/results/gray.jpg).
+
 ## Компиляция модели под Hailo (квантизация)
 
 Hailo выполняет модели только в формате `.hef` и считает в **int8**, поэтому `yolo11n.pt`
@@ -69,7 +86,7 @@ hailomz compile yolov11n --hw-arch hailo8l --calib-path coco128/images/train2017
 ```
 rgb/    — цветная (RGB) модель: detect.py, benchmark.py, detect_hailo.py,
           yolov11n.hef, images/, results/
-gray/   — серая (1-канальная) модель: сравнение скорости 1ch vs 3ch (в работе)
+gray/   — серая (1-канальная) модель: сравнение скорости 1ch vs 3ch на CPU
 ```
 
 Внутри каждой папки: `detect*.py` — детекция, `benchmark*.py` — замер FPS,
