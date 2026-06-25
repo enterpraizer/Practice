@@ -9,13 +9,13 @@ import degirum as dg
 ZOO = "/home/nikita/yolo-pi/hailo_zoo_gray/yolov11n_gray/yolov11n_gray.json"
 MODEL = "yolov11n_gray"
 SRC = "images/input.jpg"
-GRAY = "images/input_gray.jpg"
 OUTPUT = "results/hailo_gray.jpg"
 RUNS = 20
 WARMUP = 3
 
 Path("results").mkdir(exist_ok=True)
-cv2.imwrite(GRAY, cv2.cvtColor(cv2.imread(SRC), cv2.COLOR_BGR2GRAY))
+
+gray_img = cv2.imread(SRC, cv2.IMREAD_GRAYSCALE)  # 1 канал (H, W)
 
 model = dg.load_model(
     model_name=MODEL,
@@ -24,7 +24,7 @@ model = dg.load_model(
     device_type="HAILORT/HAILO8L",
 )
 
-result = model(GRAY)
+result = model(gray_img)
 
 overlay = result.image_overlay
 try:
@@ -37,12 +37,12 @@ for det in result.results:
     print(f"  - {det['label']}: {det['score']:.0%}")
 
 for _ in range(WARMUP):
-    model(GRAY)
+    model(gray_img)
 
 times = []
 for _ in range(RUNS):
     start = time.perf_counter()
-    model(GRAY)
+    model(gray_img)
     times.append(time.perf_counter() - start)
 
 avg = sum(times) / len(times)
