@@ -15,7 +15,7 @@ WARMUP = 3
 
 Path("results").mkdir(exist_ok=True)
 
-gray_img = cv2.imread(SRC, cv2.IMREAD_GRAYSCALE)  # 1 канал (H, W)
+gray_img = cv2.imread(SRC, cv2.IMREAD_GRAYSCALE)[..., None]  # 1 канал (H, W, 1)
 
 model = dg.load_model(
     model_name=MODEL,
