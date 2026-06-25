@@ -1,25 +1,25 @@
 """Сравнение скорости инференса YOLOv11n на CPU: 1 канал (gray) vs 3 канала (RGB).
 
 1-канальная модель — настоящая: веса первого слоя суммируются по входным каналам
-(для серого это даёт тот же результат, но честно с 1 каналом на входе).
-
-Число потоков CPU ограничено (2 ядра), чтобы пиковая нагрузка не проваливала питание
-платы. Абсолютные FPS из-за этого ниже 4-ядерных, но ВАЖНО СООТНОШЕНИЕ 1ch / 3ch —
-оно от числа ядер не зависит.
+(для серого изображения это даёт тот же результат, но честно с 1 каналом на входе).
 """
 
 import copy
+import platform
 import time
+from pathlib import Path
 
 import cv2
 import torch
 from ultralytics import YOLO
 
-torch.set_num_threads(1)
+torch.set_num_threads(4)
 
-IMG = "images/input.jpg"  # читаем цветную и переводим в серое прямо в коде (IMREAD_GRAYSCALE)
-RUNS = 8
-WARMUP = 2
+IMG = "images/input.jpg"  # читаем как ч/б (IMREAD_GRAYSCALE)
+RUNS = 30
+WARMUP = 5
+
+Path("results").mkdir(exist_ok=True)
 
 model3 = YOLO("yolo11n.pt").model.eval()
 
@@ -45,20 +45,29 @@ def bench(channels, model):
     with torch.no_grad():
         for _ in range(WARMUP):
             model(x)
-            time.sleep(0.5)
         times = []
         for _ in range(RUNS):
             start = time.perf_counter()
             model(x)
             times.append(time.perf_counter() - start)
-            time.sleep(0.5)
-    avg = sum(times) / len(times)
-    print(f"{channels} канал(а): {avg * 1000:7.1f} мс | {1 / avg:5.2f} FPS")
-    return avg
+    return sum(times) / len(times)
 
 
-print(f"YOLOv11n на CPU ({torch.get_num_threads()} ядра), ч/б картинка {IMG}:")
 a3 = bench(3, model3)
-time.sleep(2)
 a1 = bench(1, model1)
-print(f"\n1 канал быстрее в {a3 / a1:.3f}× ({(1 - a1 / a3) * 100:.1f}%)")
+
+report = f"""Скорость инференса YOLOv11n на CPU: 1 канал (gray) vs 3 канала (RGB)
+=================================================
+Машина:     {platform.node()} ({platform.machine()})
+Ядер CPU:   {torch.get_num_threads()}
+Картинка:   {IMG} (читается как ч/б)
+Прогонов:   {RUNS} (+{WARMUP} на разогрев)
+
+3 канала:  {a3 * 1000:6.1f} мс | {1 / a3:5.2f} FPS
+1 канал:   {a1 * 1000:6.1f} мс | {1 / a1:5.2f} FPS
+
+1 канал быстрее в {a3 / a1:.3f}x ({(1 - a1 / a3) * 100:.1f}%)
+"""
+
+print(report)
+Path("results/benchmark_gray_cpu.txt").write_text(report, encoding="utf-8")
