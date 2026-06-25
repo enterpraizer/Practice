@@ -24,12 +24,12 @@
 
 | CPU | Hailo |
 |---|---|
-| ![CPU](results/input.jpg) | ![Hailo](results/hailo.jpg) |
+| ![CPU](rgb/results/input.jpg) | ![Hailo](rgb/results/hailo.jpg) |
 
 Небольшая разница в числе объектов (21 vs 19) — из-за квантизации модели в int8.
 
-Замеры: [results/benchmark.txt](results/benchmark.txt) (CPU),
-[results/benchmark_hailo.txt](results/benchmark_hailo.txt) (Hailo).
+Замеры: [rgb/results/benchmark.txt](rgb/results/benchmark.txt) (CPU),
+[rgb/results/benchmark_hailo.txt](rgb/results/benchmark_hailo.txt) (Hailo).
 
 ## Компиляция модели под Hailo (квантизация)
 
@@ -62,10 +62,16 @@ hailomz compile yolov11n --hw-arch hailo8l --calib-path coco128/images/train2017
 плата за скорость.
 
 Запуск `.hef` из Python — через DeGirum (локальная модель: `.hef` + JSON-конфиг с
-`OutputPostprocessType: DetectionYoloHailo`), см. `detect_hailo.py`.
+`OutputPostprocessType: DetectionYoloHailo`), см. `rgb/detect_hailo.py`.
 
-## Файлы
+## Структура
 
-`detect*.py` — детекция на картинке, `benchmark*.py` — замер FPS, `*_hailo*` — версии
-под ускоритель, `yolov11n.hef` — наша модель, скомпилированная под Hailo.
-Исходники в `images/`, результаты в `results/`.
+```
+rgb/    — цветная (RGB) модель: detect.py, benchmark.py, detect_hailo.py,
+          yolov11n.hef, images/, results/
+gray/   — серая (1-канальная) модель: сравнение скорости 1ch vs 3ch (в работе)
+```
+
+Внутри каждой папки: `detect*.py` — детекция, `benchmark*.py` — замер FPS,
+`*_hailo*` — версии под ускоритель. Скрипты запускать из своей папки
+(`cd rgb` или `cd gray`).
