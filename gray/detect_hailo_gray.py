@@ -15,16 +15,15 @@ WARMUP = 3
 
 Path("results").mkdir(exist_ok=True)
 
-gray_img = cv2.imread(SRC, cv2.IMREAD_GRAYSCALE)[..., None]  # 1 канал (H, W, 1)
-
 model = dg.load_model(
     model_name=MODEL,
     inference_host_address="@local",
     zoo_url=ZOO,
     device_type="HAILORT/HAILO8L",
 )
+model.image_backend = "pil"  # PIL грузит как 1 канал (режим "L") при InputC=1
 
-result = model(gray_img)
+result = model(SRC)
 
 overlay = result.image_overlay
 try:
@@ -37,12 +36,12 @@ for det in result.results:
     print(f"  - {det['label']}: {det['score']:.0%}")
 
 for _ in range(WARMUP):
-    model(gray_img)
+    model(SRC)
 
 times = []
 for _ in range(RUNS):
     start = time.perf_counter()
-    model(gray_img)
+    model(SRC)
     times.append(time.perf_counter() - start)
 
 avg = sum(times) / len(times)
