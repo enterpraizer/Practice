@@ -33,35 +33,38 @@
 
 ## grey (1 канал) vs RGB (3 канала)
 
-Сравнение 1-канальной (grey) и 3-канальной (RGB) YOLOv11n.
-
-**CPU** (`model.predict`, end-to-end на картинке, 30 прогонов):
+На CPU разница почти двукратная (`model.predict`, 30 прогонов):
 
 | | RGB (3 канала) | grey (1 канал) |
 |---|---|---|
 | FPS | 3.57 | **6.84** |
 | Время | 280 мс | **146 мс** |
 
-→ grey **~1.9×** быстрее (меньше данных на загрузку/препроцесс).
-
-**Hailo** (`hailortcli`, чистый инференс на чипе):
+На Hailo прогнал обе модели на реальной картинке одним и тем же способом:
 
 | | RGB (3 канала) | grey (1 канал) |
 |---|---|---|
-| FPS | 77.5 | **95.5** |
-| Задержка | 11.5 мс | **9.4 мс** |
+| FPS | 57.6 | **78.6** |
+| Время | 17.4 мс | **12.7 мс** |
+| Найдено объектов | 15 | 10 |
 
-→ grey **~1.23×** быстрее (меньше входных каналов грузить на чип).
+| RGB на Hailo | grey на Hailo |
+|---|---|
+| ![RGB](rgb/results/hailo.jpg) | ![grey](gray/results/hailo_gray.jpg) |
 
-> Это **чистый инференс на чипе** (hailortcli), без CPU-обвязки — поэтому RGB здесь 77.5 FPS,
-> а не 38.8 FPS из главной таблицы (там DeGirum end-to-end: + загрузка/препроцесс/NMS на CPU).
-> grey и RGB тут меряны одним методом, поэтому их сравнение корректно.
+Grey быстрее примерно в 1.37 раза, но находит меньше объектов — за скорость пришлось заплатить
+точностью (один канал плюс квантизация).
 
-**Вывод: grey (1 канал) быстрее и на CPU, и на Hailo.** Для этого модель пересобрана
-под 1 канал (суммированы веса первого слоя) и отдельно скомпилирована в `.hef` под Hailo.
+Отдельная история — как вообще запустить grey на Hailo. DeGirum в нашей версии не принимает
+одноканальный вход, поэтому пришлось обращаться к ускорителю напрямую через HailoRT: сам собираю
+тензор 640×640×1 и забираю готовые детекции (NMS уже зашит в `.hef`). Скрипт —
+[gray/detect_hailo_gray_hrt.py](gray/detect_hailo_gray_hrt.py).
+
+Итог: grey быстрее и на CPU, и на Hailo, но часть объектов теряет.
 
 Замеры: [CPU](gray/results/benchmark_gray_cpu.txt),
-[Hailo](gray/results/benchmark_hailo_gray.txt). Картинка: [gray/results/gray.jpg](gray/results/gray.jpg).
+[Hailo на картинке](gray/results/benchmark_hailo_gray_image.txt).
+Картинки: [CPU grey](gray/results/gray.jpg), [Hailo grey](gray/results/hailo_gray.jpg).
 
 ## Компиляция модели под Hailo (квантизация)
 
@@ -101,7 +104,7 @@ hailomz compile yolov11n --hw-arch hailo8l --calib-path coco128/images/train2017
 ```
 rgb/    — цветная (RGB) модель: detect.py, benchmark.py, detect_hailo.py,
           yolov11n.hef, images/, results/
-gray/   — серая (1-канальная) модель: сравнение скорости 1ch vs 3ch на CPU
+gray/   — серая (1-канальная) модель: сравнение 1ch vs 3ch на CPU и на Hailo
 ```
 
 Внутри каждой папки: `detect*.py` — детекция, `benchmark*.py` — замер FPS,
